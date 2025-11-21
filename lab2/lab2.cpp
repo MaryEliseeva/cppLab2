@@ -4,6 +4,8 @@
 #include <vector>
 #include <tuple>
 #include <utility>
+#include <unordered_map>
+#include <functional>
 
 struct Subject {
     int f3(int arg1, int arg2) {
@@ -38,6 +40,31 @@ private:
     }
 };
 
+
+class Engine {
+    std::unordered_map<std::string, std::function<int(const std::map<std::string, int>&)>> commands;
+
+public:
+    template<typename WrapperType>
+    void register_command(WrapperType* wrapper, const std::string& name) {
+
+        commands[name] = [wrapper](const std::map<std::string, int>& args) {
+            return (*wrapper)(args);
+            };
+    }
+
+    int execute(const std::string& name, const std::map<std::string, int>& args) {
+        auto it = commands.find(name);
+        if (it != commands.end()) {
+            return it->second(args);
+        }
+        else {
+            throw std::runtime_error("Command not found: " + name);
+        }
+    }
+};
+
+
 int main() {
     Subject subj;
 
@@ -45,7 +72,12 @@ int main() {
         &subj, &Subject::f3, { "arg1", "arg2" }
     );
 
+    Engine engine;
+    engine.register_command(&wrapper, "command1");
+
     std::map<std::string, int> args{ {"arg1", 4}, {"arg2", 5} };
 
-    std::cout << wrapper(args) << std::endl; // 9
+    std::cout << engine.execute("command1", args) << std::endl; // 9
+
+    return 0;
 }
