@@ -2,6 +2,8 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <tuple>
+#include <utility>
 
 struct Subject {
     int f3(int arg1, int arg2) {
@@ -9,32 +11,41 @@ struct Subject {
     }
 };
 
-template<typename T>
+template<typename T, typename ReturnType, typename... Args>
 class Wrapper {
     T* obj;
-    int(T::* method)(int, int);
+    ReturnType(T::* method)(Args...);
     std::vector<std::string> arg_names;
 
 public:
-    Wrapper(T* obj, int(T::* method)(int, int), std::initializer_list<std::pair<std::string, int>> names)
-        : obj(obj), method(method)
-    {
-        for (auto& p : names) {
-            arg_names.push_back(p.first);
-        }
+    Wrapper(T* obj, ReturnType(T::* method)(Args...), std::initializer_list<std::string> names)
+        : obj(obj), method(method), arg_names(names) {
     }
 
-    int operator()(const std::map<std::string, int>& args_map) {
-        return (obj->*method)(args_map.at(arg_names[0]), args_map.at(arg_names[1]));
+    ReturnType operator()(const std::map<std::string, int>& args_map) {
+        return invoke(args_map, std::index_sequence_for<Args...>{});
+    }
+
+private:
+    template<std::size_t I>
+    int get_arg(const std::map<std::string, int>& m) {
+        return m.at(arg_names[I]);
+    }
+
+    template<std::size_t... Is>
+    ReturnType invoke(const std::map<std::string, int>& m, std::index_sequence<Is...>) {
+        return (obj->*method)(get_arg<Is>(m)...);
     }
 };
 
 int main() {
     Subject subj;
-    Wrapper<Subject> wrapper(&subj, &Subject::f3, { {"arg1",0},{"arg2",0} });
 
-    std::map<std::string, int> args{ {"arg1",4},{"arg2",5} };
+    Wrapper<Subject, int, int, int> wrapper(
+        &subj, &Subject::f3, { "arg1", "arg2" }
+    );
+
+    std::map<std::string, int> args{ {"arg1", 4}, {"arg2", 5} };
+
     std::cout << wrapper(args) << std::endl; // 9
-
-    return 0;
 }
