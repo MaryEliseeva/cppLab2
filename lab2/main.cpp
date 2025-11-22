@@ -1,15 +1,13 @@
-﻿#include <iostream>
-#include <map>
-#include "Subject.h"
+﻿#include "Engine.h"
 #include "Wrapper.h"
-#include "Engine.h"
+#include "Subject.h"
+#include <iostream>
+#include <map>
 
 int main() {
     Subject subj;
 
-    Wrapper<Subject, int, int, int> wrapper(
-        &subj, &Subject::f3, { "arg1", "arg2" }
-    );
+    Wrapper<Subject, int, int, int> wrapper(&subj, &Subject::f3, { "arg1", "arg2" });
 
     Engine engine;
     engine.register_command(&wrapper, "command1");
